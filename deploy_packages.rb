@@ -4,23 +4,24 @@ require 'rubygems'
 require 'bundler/setup'
 Bundler.require
 
-
 ENV['HOME'] = ENV['WORKSPACE']
 ENV['JAVA_HOME'] = '/usr/local/java'
 ENV['ANT_HOME'] = '/usr/local/apache-ant-1.7.0'
 ENV['PATH'] = "#{ENV['PATH']}:#{ENV['ANT_HOME']}/bin"
 
 create_rpmdir = 'rpmdev-setuptree'
-build_rpm = 'rpmbuild -ba `ls -t *.spec |head -1`'
-
-if $?.exitstatus == 1
-  STDERR.print "  "
+status, stdout, stderr = systemu create_rpmdir
+if $?.status == 1
+  STDERR.print ""
   exit 1
 end
 
-
-create_rpmdir.exitstatus
-build_rpm.exitstatus
+build_rpm = 'rpmbuild -ba `ls -t *.spec |head -1`'
+status, stdout, stderr = systemu build_rpm
+if $?.status == 1
+  STDERR.print ""
+  exit 1
+end
 
 def post(text)
   data = {
