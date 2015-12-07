@@ -4,29 +4,35 @@ require 'rubygems'
 require 'bundler/setup'
 Bundler.require
 
-ENV['HOME'] = ENV['WORKSPACE']
+#ENV['HOME'] = ENV['WORKSPACE']
+ENV['HOME'] = '/var/lib/jenkins/workspace/build-vc-packages' 
 ENV['JAVA_HOME'] = '/usr/local/java'
 ENV['ANT_HOME'] = '/usr/local/apache-ant-1.7.0'
 ENV['PATH'] = "#{ENV['PATH']}:#{ENV['ANT_HOME']}/bin"
 
-create_rpmdir = 'rpmdev-setuptree'
-status, stdout, stderr = systemu create_rpmdir
-if $?.status == 1
-  STDERR.print ""
-  exit 1
+puts ENV['HOME'] 
+
+Open3.popen3("rpmdev-setuptree") do |stdin, stdout, stderr, wait_thr|
+  unless stderr.read.empty?
+    puts 'ERROR'
+    exit (1)
+  end
 end
 
-build_rpm = 'rpmbuild -ba `ls -t *.spec |head -1`'
-status, stdout, stderr = systemu build_rpm
-if $?.status == 1
-  STDERR.print ""
-  exit 1
+
+Open3.popen3("rpmbuild -ba `ls -t *.spec |head -1`") do |stdin, stdout, stderr, wait_thr|
+  puts stdout.read
+  unless wait_thr.value.success?
+    puts 'Build Failed'
+    exit (1)
+  end
 end
 
 def post(text)
   data = {
     "channel"  => '#infra',
     "username" => 'vcbot',
+    "icon_url" => 'https://avatars3.githubusercontent.com/u/7507421?v=3&s=400',
     "text" => text
   }
   request_url = ENV['SLACK_INCOMING_WEBHOOK']
