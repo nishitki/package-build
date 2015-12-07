@@ -20,7 +20,7 @@ Open3.popen3("rpmdev-setuptree") do |stdin, stdout, stderr, wait_thr|
 end
 
 
-Open3.popen3("rpmbuild -ba `ls -t *.spec |head -1`") do |stdin, stdout, stderr, wait_thr|
+Open3.popen3("rpmbuild --clean -ba `ls -t *.spec |head -1`") do |stdin, stdout, stderr, wait_thr|
   puts stdout.read
   unless wait_thr.value.success?
     puts 'Build Failed'
