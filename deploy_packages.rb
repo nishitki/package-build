@@ -31,7 +31,7 @@ end
 def post(text)
   data = {
     "channel"  => '#infra',
-    "username" => 'vcbot',
+    "username" => 'bot',
     "icon_url" => 'https://avatars3.githubusercontent.com/u/7507421?v=3&s=400',
     "text" => text
   }
