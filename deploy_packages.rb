@@ -34,6 +34,10 @@ def post(text)
   http = Net::HTTP.post_form(uri, {"payload" => data.to_json})
 end
 
-"Pull Request: master -> ENV['GIT_BRANCH'] build successfully finished"
-"continue manual merge ENV['BUILD_URL'] to deploy"
-"just close pull request to cancel"
+body = <<-"EOC" 
+Pull Request: master -> ENV['GIT_BRANCH'] build successfully finished
+continue manual merge ENV['BUILD_URL'] to deploy
+just close pull request to cancel
+EOC
+
+post(body)
