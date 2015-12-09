@@ -5,9 +5,7 @@ require 'bundler/setup'
 require 'open3'
 Bundler.require
 
-#ENV['HOME'] = ENV['WORKSPACE']
-ENV['HOME'] = '/var/lib/jenkins/workspace/build-vc-packages' 
-ENV['GIT_BRANCH'] = 'deploy/logproc.pm.staging.intra'
+ENV['HOME'] = ENV['WORKSPACE']
 ENV['JAVA_HOME'] = '/usr/local/java'
 ENV['ANT_HOME'] = '/usr/local/apache-ant-1.7.0'
 ENV['PATH'] = "#{ENV['PATH']}:#{ENV['ANT_HOME']}/bin"
