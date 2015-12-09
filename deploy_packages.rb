@@ -2,21 +2,25 @@
 
 require 'rubygems'
 require 'bundler/setup'
+require 'open3'
 Bundler.require
 
-ENV['HOME'] = ENV['WORKSPACE']
-#ENV['HOME'] = '/var/lib/jenkins/workspace/build-vc-packages' 
+#ENV['HOME'] = ENV['WORKSPACE']
+ENV['HOME'] = '/var/lib/jenkins/workspace/build-vc-packages' 
+ENV['GIT_BRANCH'] = 'deploy/logproc.pm.staging.intra'
 ENV['JAVA_HOME'] = '/usr/local/java'
 ENV['ANT_HOME'] = '/usr/local/apache-ant-1.7.0'
 ENV['PATH'] = "#{ENV['PATH']}:#{ENV['ANT_HOME']}/bin"
 
+
 package_dir = '/usr/local/kickstart/vc'
-branch = ENV['GIT_BRANCH']
-environment = branch.match(/deploy\/[a-z0-9.]*)\.([0-9a-z]*)\.([0-9a-z]*)$/)[2]
+branch = "#{ENV['GIT_BRANCH']}"
+environment = branch.match(/(deploy\/[a-z0-9.]*)\.([0-9a-z]*)\.([0-9a-z]*)$/)[2]
 rpmdir = "#{ENV['HOME']}/rpmbuild/RPMS/noarch"
 repodir = "/usr/local/kickstart/vc/#{environment}"
+reposerver = "192.168.201.241"
 update_repo = 'createrepo --update /var/www/html/repos'
-deploy_package = Dir.glob("#{HOME}/rpmbuild/RPMS/noarch/*").max_by {|f| File.mtime(f)}
+deploy_package = Dir.glob("#{ENV['HOME']}/rpmbuild/RPMS/noarch/*").max_by {|f| File.mtime(f)}
 
 def post(text)
   data = {
@@ -38,29 +42,32 @@ Open3.popen3("rpmdev-setuptree") do |stdin, stdout, stderr, wait_thr|
 end
 
 Open3.popen3("rpmbuild --clean -bb `ls -t *.spec |head -1`") do |stdin, stdout, stderr, wait_thr|
-  puts stdout.read
+  while output = stdout.gets
+     output.chomp!
+     puts output 
+  end 
   unless wait_thr.value.success?
     puts 'Build Failed'
     exit (1)
   end
 end
 
-Net::SCP.start("#{host}", "jenkins", :keys => ['~/.ssh/id_rsa']) do |scp|
+Net::SCP.start("#{reposerver}", "jenkins", :keys => ['~/.ssh/id_rsa']) do |scp|
   scp.upload!("#{rpmdir}/#{deploy_package}", "#{repodir}") do |channel, stream, data|
     body << data if stream == :stdout
   end
 
-  if body.include?("hoge")
-    puts "fail"
-  else
-    Net::SSH.start("#{host}", "jenkins", :keys => ['~/.ssh/id_rsa']) do |ssh|
-    ssh.exec!("#{update_repo}") do |channel, stream, data|  
-      body << data if stream == :stdout 
-    end
-    if body.include?("package(s) needed for security")  
-       puts "error"
-       exit (1)
-    end
+ # if body.include?("hoge")
+ #   puts "fail"
+ # else
+ #   Net::SSH.start("#{host}", "jenkins", :keys => ['~/.ssh/id_rsa']) do |ssh|
+ #   ssh.exec!("#{update_repo}") do |channel, stream, data|  
+ #     body << data if stream == :stdout 
+ #   end
+ #   if body.include?("package(s) needed for security")  
+ #      puts "error"
+ #      exit (1)
+ #   end
 end
 
 body = <<-"EOC" 
@@ -69,4 +76,4 @@ continue manual merge ENV['BUILD_URL'] to deploy
 just close pull request to cancel
 EOC
 
-post(body)
+#post(body)
