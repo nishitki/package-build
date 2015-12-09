@@ -68,10 +68,10 @@ Net::SCP.start("#{reposerver}", "jenkins", :keys => ['~/.ssh/id_rsa']) do |scp|
  #   end
 end
 
-body = <<-"EOC" 
+text = <<-"EOC" 
 Pull Request: master -> ENV['GIT_BRANCH'] build successfully finished
 continue manual merge ENV['BUILD_URL'] to deploy
 just close pull request to cancel
 EOC
 
-#post(body)
+#post(text)
