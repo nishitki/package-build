@@ -16,10 +16,6 @@ repo = 'vcjp/packages'
 branch = "#{ENV['GIT_BRANCH']}"
 pullrequesturl = ''
 environment = branch.match(/(deploy\/[a-z0-9.]*)\.([0-9a-z]*)\.([0-9a-z]*)$/)[2]
-rpmdir = "#{ENV['HOME']}/rpmbuild/RPMS/noarch"
-repodir = "/usr/local/kickstart/vc/#{environment}"
-update_repo = 'createrepo --update /var/www/html/repos'
-deploy_package = Dir.glob("#{ENV['HOME']}/rpmbuild/RPMS/noarch/*").max_by {|f| File.mtime(f)}
 
 def post(text)
   data = {
