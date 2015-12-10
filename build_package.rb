@@ -13,7 +13,7 @@ ENV['GITHUB_ACCESS_TOKEN'] = 'mytoken'
 ENV['SLACK_INCOMING_WEBHOOK'] = 'https://hooks.slack.com/services/mytoken'
 
 repo = 'vcjp/packages'
-branch = "#{ENV['GIT_BRANCH']}"
+branch = ENV['GIT_BRANCH']
 pullrequesturl = ''
 environment = branch.match(/(deploy\/[a-z0-9.]*)\.([0-9a-z]*)\.([0-9a-z]*)$/)[2]
 
