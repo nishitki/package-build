@@ -9,14 +9,15 @@ ENV['HOME'] = ENV['WORKSPACE']
 ENV['JAVA_HOME'] = '/usr/local/java'
 ENV['ANT_HOME'] = '/usr/local/apache-ant-1.7.0'
 ENV['PATH'] = "#{ENV['PATH']}:#{ENV['ANT_HOME']}/bin"
+ENV['GITHUB_ACCESS_TOKEN'] = 'mytoken'
+ENV['SLACK_INCOMING_WEBHOOK'] = 'https://hooks.slack.com/services/mytoken'
 
-
-package_dir = '/usr/local/kickstart/vc'
+repo = 'vcjp/packages'
 branch = "#{ENV['GIT_BRANCH']}"
+pullrequesturl = ''
 environment = branch.match(/(deploy\/[a-z0-9.]*)\.([0-9a-z]*)\.([0-9a-z]*)$/)[2]
 rpmdir = "#{ENV['HOME']}/rpmbuild/RPMS/noarch"
 repodir = "/usr/local/kickstart/vc/#{environment}"
-reposerver = "192.168.201.241"
 update_repo = 'createrepo --update /var/www/html/repos'
 deploy_package = Dir.glob("#{ENV['HOME']}/rpmbuild/RPMS/noarch/*").max_by {|f| File.mtime(f)}
 
@@ -32,6 +33,19 @@ def post(text)
   http = Net::HTTP.post_form(uri, {"payload" => data.to_json})
 end
 
+client = Octokit::Client.new(access_token: ENV['GITHUB_ACCESS_TOKEN'])
+pull = client.pull_requests(repo, :state => 'open')
+pull.each do |p|
+  pullrequesturl = p.html_url.gsub(/api.github.com\/repos/, 'github.com').gsub(/pulls/, 'pull')
+  head = p.head.ref
+
+  if !head.eql?(branch) 
+    puts "branch name does not mutch git head"
+    exit (1)
+  end
+
+end
+
 Open3.popen3("rpmdev-setuptree") do |stdin, stdout, stderr, wait_thr|
   unless stderr.read.empty?
     puts "ERROR: Can\'t create build environment"
@@ -39,39 +53,20 @@ Open3.popen3("rpmdev-setuptree") do |stdin, stdout, stderr, wait_thr|
   end
 end
 
-Open3.popen3("rpmbuild --clean -bb `ls -t *.spec |head -1`") do |stdin, stdout, stderr, wait_thr|
+Open3.popen3("rpmbuild --clean -ba `ls -t *.spec |head -1`") do |stdin, stdout, stderr, wait_thr|
   while output = stdout.gets
-     output.chomp!
-     puts output 
+    output.chomp!
+    puts output 
   end 
   unless wait_thr.value.success?
-    puts 'Build Failed'
     exit (1)
   end
 end
 
-Net::SCP.start("#{reposerver}", "jenkins", :keys => ['~/.ssh/id_rsa']) do |scp|
-  scp.upload!("#{rpmdir}/#{deploy_package}", "#{repodir}") do |channel, stream, data|
-    body << data if stream == :stdout
-  end
-
- # if body.include?("hoge")
- #   puts "fail"
- # else
- #   Net::SSH.start("#{host}", "jenkins", :keys => ['~/.ssh/id_rsa']) do |ssh|
- #   ssh.exec!("#{update_repo}") do |channel, stream, data|  
- #     body << data if stream == :stdout 
- #   end
- #   if body.include?("package(s) needed for security")  
- #      puts "error"
- #      exit (1)
- #   end
-end
-
-text = <<-"EOC" 
-Pull Request: master -> ENV['GIT_BRANCH'] build successfully finished
-continue manual merge ENV['BUILD_URL'] to deploy
+body = <<-"EOC" 
+Pull Request: master -> #{ENV['GIT_BRANCH']} build successfully finished
+continue manual merge #{pullrequesturl} to deploy
 just close pull request to cancel
 EOC
 
-#post(text)
+post(body)
